@@ -1,6 +1,7 @@
 from __future__ import absolute_import, division, unicode_literals
 
 import socket
+import logging
 
 from .base import StatsClientBase, PipelineBase
 
@@ -31,8 +32,13 @@ class StatsClient(StatsClientBase):
                  maxudpsize=512, ipv6=False):
         """Create a new client."""
         fam = socket.AF_INET6 if ipv6 else socket.AF_INET
-        family, _, _, _, addr = socket.getaddrinfo(
-            host, port, fam, socket.SOCK_DGRAM)[0]
+
+        try:
+            family, _, _, _, addr = socket.getaddrinfo(host, port, fam, socket.SOCK_DGRAM)[0]
+        except (socket.gaierror):
+            logging.error(f"Could not resolve statsd host: {host}")
+            family, _, _, _, addr = socket.getaddrinfo('localhost', port, fam, socket.SOCK_DGRAM)[0]
+
         self._addr = addr
         self._sock = socket.socket(family, socket.SOCK_DGRAM)
         self._prefix = prefix
